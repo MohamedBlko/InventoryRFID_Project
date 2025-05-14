@@ -8,9 +8,11 @@
 #include <Adafruit_SSD1306.h>
 #include <time.h>
 #include <WiFi.h>
+#include <ArduinoJson.h>   // install ArduinoJson library
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
 
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,&Wire, OLED_RESET);
@@ -24,11 +26,11 @@ String skuFull;
 
 /*const char* ssid    = "SM-G781W6479";
 const char* password = "kmwq3644";*/
-/*const char* ssid = "";   // Change this
-const char* password = "KHEOPS1001";  // Change this*/
-const char* ssid = "Helix7291";   // Change this
-const char* password = "chezfrancois1";  // Change this
-const char* serverUrl = "https://script.google.com/macros/s/AKfycbyQXUx8hWHuQ3lZQBhwduRYHODfBbuFGnZqV3BCW5Il_-PZithH41iQaYMGTKjgx1ps/exec";  // Change IP
+const char* ssid = "FIZZ04289"; 
+const char* password = "KHEOPS1001"; 
+/*const char* ssid = "Helix7291";   // Change this
+const char* password = "chezfrancois1";  // Change this*/
+const char* serverUrl = "https://script.google.com/macros/s/AKfycby-713toRe1KlkaOKbxXv-gDu_1bg96uprV3CGGm5sRt7uFnmNLCc4ed_cEFekJiIJv/exec";  // Change IP
 
 #define RST_PIN  0
 #define SS_PIN   5
@@ -37,15 +39,20 @@ const char* serverUrl = "https://script.google.com/macros/s/AKfycbyQXUx8hWHuQ3lZ
 #define LED_READ 2   // LED for read mode
 #define LED_WRITE 15 // LED for write mode
 
+#define START_PAGE 4
+#define END_PAGE  15   // classic Ultralight
+
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 bool ledState = false; // false = LED1 ON, LED2 OFF; true = LED1 OFF, LED2 ON
 bool buttonPressed = false; // Flag to indicate button press
 
-void writeStringToUltralight(const char *text);
+void writeStringToUltralight(const char* text, int page);
 String readStringFromUltralight(byte startPage, byte length);
-void sendToServer(String uid, String name);
+void sendToServer(String uid, String name,String location);
+//void readFromServer(const String& uid); // Function prototype declaration
 void updateSKU(); // Function prototype declaration
+void writeFixedStrings(); // Function prototype declaration
 void initWiFi();  // Function prototype declaration
 void initTime();  // Function prototype declaration
 void OLEDiplay(const String& msg,int16_t size);  // Function prototype declaration
@@ -118,32 +125,40 @@ void loop() {
         Serial.println();
     
         if(ledState) { // Writing mode
-        updateSKU();          // remplit skuFull
-        skuFull.trim(); // Remove leading and trailing whitespace
-
-        //Serial.print(F("\n: ")); Serial.println(skuFull);
-        writeStringToUltralight(skuFull.c_str());
+            display.clearDisplay();
+            display.setCursor(0,0); 
+            OLEDiplay("Writing new SKU...",1) ;
+            updateSKU();          // remplit skuFull
+            skuFull.trim(); // Remove leading and trailing whitespace
+            writeStringToUltralight(skuFull.c_str(),4);
+            //writeFixedStrings();
+            OLEDiplay("DONE",3) ;
+            delay(2000);
         }
         else if (!ledState) { // Reading mode
           //  Serial.println(F("Press the button to read the stored name..."));
             Serial.println(F("\nReading stored name..."));
-            OLEDiplay("Reading stored name...",1) ;
-            String storedName = readStringFromUltralight(4, 20);
+            OLEDiplay("Reading stored name..",1) ;
+            String storedName = readStringFromUltralight(4, 22);
             if (storedName.length() == 0) {
                 Serial.println(F("No name stored!"));
                 display.clearDisplay();
                 OLEDiplay(F("No name stored!"),1) ;
                 return;
             }
+
+                        // now slice it back into two parts
+            String storedNameSKU = storedName.substring(0,15);  // chars [0..14]
+            String storedNameLoc = storedName.substring(15);    // chars [15..21]
             // OLED display STORED NAME     
             display.clearDisplay();
             display.setCursor(0,0); 
             OLEDiplay(F("Stored Name:"),1) ;
             OLEDiplay(storedName,1) ;
             Serial.println(storedName);
-
+           // readFromServer(cardUID);
             // Send data to server
-            sendToServer(cardUID, storedName);
+            sendToServer(cardUID, storedNameSKU,"1A1A1-2" );
            // display.clearDisplay();
             OLEDiplay(F("Data sent to server!"),1) ;
             Serial.println("Data sent to server!");
@@ -153,9 +168,38 @@ void loop() {
 
 }
 
+/*void writeFixedStrings() {
+    // 1) First string
+    const char* s1 = "12345678_064152";
+    writeStringToUltralight(s1, START_PAGE);
+  
+    // 2) Second string
+    const char* s2 = "1A1A1-2";
+    int secondStart = START_PAGE + 4;    
+    writeStringToUltralight(s2, secondStart);
+  }*/
 
+void writeStringToUltralight(const char* text, int page) {
+    byte buffer[4];
+    int len = strlen(text);
+    int written = 0;
+  
+    while (written < len && page <= END_PAGE) {
+      memset(buffer, 0, 4);
+      for (int j = 0; j < 4 && written < len; j++) {
+        buffer[j] = text[written++];
+      }
+      auto status = mfrc522.MIFARE_Ultralight_Write(page, buffer, 4);
+      if (status != MFRC522::STATUS_OK) {
+        Serial.print("Write failed at page "); Serial.println(page);
+        return;
+      }
+      page++;
+    }
+    Serial.println("Write done at pages.");
+  }
 
-void writeStringToUltralight(const char *text) {
+/*void writeStringToUltralight(const char *text) {
     byte buffer[4];
     byte page = 4;  // Start writing from page 4
     int textLength = strlen(text);
@@ -178,11 +222,11 @@ void writeStringToUltralight(const char *text) {
     }
     Serial.println(F("Write completed!"));
     delay(5000); // Wait for 5 seconds before next operation
-}
+}*/
 
-String readStringFromUltralight(byte startPage, byte length) {
+/*String readStringFromUltralight(byte startPage, byte length) {
     String result = "";
-    byte buffer[18];
+    byte buffer[20];
     byte size = sizeof(buffer);
 
     for (byte page = startPage; page < startPage + (length / 4); page++) {
@@ -202,15 +246,86 @@ String readStringFromUltralight(byte startPage, byte length) {
     Serial.println(F("Read completed!"));
     delay(5000);
     return result;
+}*/
+
+String readStringFromUltralight(byte startPage, byte length) {
+    String result = "";
+
+    // How many 4-byte pages to read (rounded up)
+    uint8_t pages = (length + 3) / 4;  
+
+    // RF522 MIFARE_Read wants a buffer up to 18 bytes
+    byte rawBuf[18];
+    byte size = sizeof(rawBuf);
+
+    for (uint8_t i = 0; i < pages; i++) {
+        byte page = startPage + i;
+        
+        // Read the 16-byte block starting at 'page'
+        MFRC522::StatusCode status = mfrc522.MIFARE_Read(page, rawBuf, &size);
+        if (status != MFRC522::STATUS_OK) {
+            Serial.print(F("Read failed at page "));
+            Serial.print(page);
+            Serial.print(F(": "));
+            Serial.println(mfrc522.GetStatusCodeName(status));
+            return "";
+        }
+
+        // Pull off only the first 4 bytes—Ultralight pages are 4 bytes each
+        for (uint8_t j = 0; j < 4 && result.length() < length; j++) {
+            byte b = rawBuf[j];
+            if (b == 0x00) break;
+            result += (char)b;
+        }
+    }
+
+    return result;
 }
 
-void sendToServer(String uid, String name) {
+
+/*void readFromServer(const String& uid) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected!");
+    return;
+  }
+
+  HTTPClient http;
+  String url = String(serverUrl) + "?uid=" + uid;
+  http.begin(url);
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);  // allow up to 5 redirects
+
+  int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK) {
+    Serial.printf("GET failed, code: %d\n", httpCode);
+    http.end();
+    return;
+  }
+  
+  // Parse JSON response
+  String payload = http.getString();
+  StaticJsonDocument<256> doc;
+  DeserializationError err = deserializeJson(doc, payload);
+  if (err) {
+    Serial.print("JSON parse error: ");
+    Serial.println(err.c_str());
+  } else if (doc.containsKey("error")) {
+    Serial.print("Server error: ");
+    Serial.println(doc["error"].as<const char*>());
+  } else {
+    String name     = doc["name"].as<String>();
+    String location = doc["location"].as<String>();
+    Serial.printf("UID: %s, Name: %s, Location: %s\n",
+                  uid.c_str(), name.c_str(), location.c_str());
+  }
+  http.end();
+}*/
+
+void sendToServer(String uid, String name, String location) {
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-        String postData = "uid=" + uid + "&name=" + name;
+        String postData = "uid=" + uid + "&name=" + name + "&location=" + location;
         int httpResponseCode = http.POST(postData);
 
         if (httpResponseCode > 0) {
@@ -282,7 +397,7 @@ void initTime() {
     delay(1000);
   }
   // Met à jour skuFull, skuDate et skuTime avec la date/heure courantes
-void updateSKU() {
+void updateSKU() { 
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
       display.clearDisplay();
