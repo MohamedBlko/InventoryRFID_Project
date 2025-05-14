@@ -29,7 +29,7 @@ const char* password = "kmwq3644";*/
 const char* ssid = "FIZZ04289"; 
 const char* password = "KHEOPS1001"; 
 /*const char* ssid = "Helix7291";   // Change this
-const char* password = "chezfrancois1";  // Change this*/
+const char* password = "";  // Change this*/
 const char* serverUrl = "https://script.google.com/macros/s/AKfycby-713toRe1KlkaOKbxXv-gDu_1bg96uprV3CGGm5sRt7uFnmNLCc4ed_cEFekJiIJv/exec";  // Change IP
 
 #define RST_PIN  0
