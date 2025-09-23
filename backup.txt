@@ -32,9 +32,12 @@ const int DAYLIGHT_OFFSET_SEC = 0;      // Décalage pour l'heure d'été
  ********************************************************************/
 String skuFull; // Contient le SKU complet (date et heure formatée)
 
+// Informations Wi-Fi
+//const char* ssid = "Helix7291"; // Nom du réseau Wi-Fi
+//const char* password = "chezfrancois1"; // Mot de passe du réseau Wi-Fi
 
 // URL du serveur pour envoyer les données
-const char* serverUrl = "https://script.google.com/macros/s/AKfycbyXPDymDrVKF9IzpyUfbctDl8EdX7xHcnvYmFywMmLFSXdc_2oBvTn38dEBQIFGxILT/exec";
+const char* serverUrl = "https://script.google.com/macros/s/AKfycbyIF8NO434im5xg3mzaG8yE95ndcxglDmt023p1we1YcmHIUa1QXD3navGObVrAE6qv/exec";
 
 // Pins pour le lecteur RFID et les boutons
 #define RST_PIN  0
@@ -85,7 +88,6 @@ void dumpTagInfo();
 void onPortalStart(WiFiManager *wm); // Prototype for WiFiManager AP callback
 void onSaveConfig(); // Prototype for WiFiManager save config callback
 void clearUltralightTag(); // Prototype for clearUltralightTag
-String getLocation(const String& nameKey); // Prototype for getLocation
 
 
 /********************************************************************
@@ -165,10 +167,9 @@ void loop() {
         delay(300); // Anti-rebond
 
         if(lastPotValue == 4) { 
-            Serial.println(F("\nReseting Wifi..."));
+            Serial.println(F("\nMode de lecture..."));
             display.clearDisplay();
             display.setCursor(0, 0); 
-            Serial.println(F("Wifi deleted"));
             OLEDiplay(F("Wifi deleted"), 1);
             delay(5000);
               //WiFiManager
@@ -197,68 +198,55 @@ void loop() {
             display.clearDisplay();
             display.setCursor(0, 0); 
             OLEDiplay("Ecriture du SKU...", 1);
-            Serial.println(F("SKU generation..."));
             updateSKU(); // Met à jour le SKU
             skuFull.trim(); // Supprime les espaces inutiles
             Serial.println(skuFull.c_str());
-            //writeStringToUltralight("en20250517_163642",7);
-            writeStringToUltralight(("en"+ skuFull).c_str(),7);
-             // Envoi des données au serveur
-            sendToServer(cardUID, skuFull);
-            //fetchAndDisplayLocation(storedNameSKU);
-            OLEDiplay(F("Donnees envoyees !"), 1);
-            Serial.println(F("SKU registered!"));
-            Serial.println(F("End of processus!"));
-            Serial.println ("SKU: "+ skuFull);
-            display.clearDisplay();
-            display.setCursor(0, 12);
-            OLEDiplay("End of processus", 1);
+           // writeStringToUltralight(skuFull.c_str(),7);
+            writeStringToUltralight("20250514_145637",7);
+            OLEDiplay("Termine", 2);
             delay(2000);
         }
         // Station de stockage
         else if(lastPotValue == 1)  { 
-            Serial.println(F("\nReading tag..."));
+            Serial.println(F("\nStockage..."));
             OLEDiplay("Lecture du nom...", 1);
             String storedName = readStringFromUltralight(7, 15);
-            String loc = getLocation(storedName);
-            Serial.print(F("SKU read:"));
             Serial.println(storedName);
-            Serial.print("Location for ");
-            Serial.print(storedName);
-            Serial.print(": ");
-            Serial.println(loc);
-            delay(10000);        
-            if (storedName.length() == 0 ) {
-                Serial.println(F("No SKU stored!"));
+            if (storedName.length() == 0) {
+                Serial.println(F("Aucun nom stocke !"));
                 display.clearDisplay();
                 OLEDiplay(F("Aucun nom stocke !"), 1);
-                return; 
+                return;
             }
-            else if (loc.length() == 0) {
-                Serial.println(F("No location found!"));
-                display.clearDisplay();
-                OLEDiplay(F("Aucun emplacement trouve !"), 1);
-                return; 
-            }
-           // String storedNameSKU = storedName.substring(0, 15);    
-          //  Serial.println(storedNameSKU);
+
+            // Découpage du nom stocké
+            String storedNameSKU = storedName.substring(0, 15);  
+           // String storedNameLoc = storedName.substring(15);    
+           Serial.println(storedNameSKU);
             // Affichage OLED
             display.clearDisplay();
             display.setCursor(0, 0); 
             OLEDiplay(F("SKU:"), 1);
             OLEDiplay(storedName, 1);
-           // Serial.println(storedName);
-            delay(2000);
+            Serial.println(storedName);
+
+            // Envoi des données au serveur
+            sendToServer(cardUID, storedNameSKU);
+            //fetchAndDisplayLocation(storedNameSKU);
+            OLEDiplay(F("Donnees envoyees !"), 1);
+            Serial.println("Donnees envoyees !");
+            delay(1000);
         }
         else if(lastPotValue == 2) { 
             Serial.println(F("\nVente..."));
         }
         else if(lastPotValue == 3) {
-            Serial.println(F("\nErase tag ... !"));
+            Serial.println(F("\nEffacer le tag ... !"));
             clearUltralightTag() ;
             display.clearDisplay();
             display.setCursor(0, 0); 
-            OLEDiplay(F("Tag cleared !"), 1);
+            OLEDiplay(F("Tag cleared"), 1);
+            OLEDiplay(F("!"), 1);
             delay(1000);
         }
     }
@@ -312,7 +300,7 @@ void writeStringToUltralight(const char* text, int page) {
 // Lecture d'une chaîne de caractères depuis la mémoire RFID
 String readStringFromUltralight(byte startPage, byte length) {
     String result = "";
-    uint8_t pages = ((length + 3) / 4)+1; // Nombre de pages à lire
+    uint8_t pages = ((length + 3) / 4); // Nombre de pages à lire
     Serial.println(pages);
     byte rawBuf[18];
     byte size = sizeof(rawBuf);
@@ -328,11 +316,9 @@ String readStringFromUltralight(byte startPage, byte length) {
             return "";
         }
         for (uint8_t j = 0; j < 4 && result.length() < length; j++) {
-            if (i==0 && j==0) j+=2; // Ignore les 2 premiers octets
+            if (page==7) j+=2; // Ignore les 2 premiers octets
            // else if (i==pages-1 && j==2) break; // Ignore les 2 derniers octets
             byte b = rawBuf[j];
-            Serial.println(b, HEX);
-            Serial.println(j);
             if (b == 0x00) break;
             result += (char)b;
         }
@@ -354,6 +340,7 @@ void sendToServer(String uid, String name) {
         } else {
             Serial.println("Erreur lors de l'envoi des données.");
         }
+
         http.end();
     } else {
         Serial.println("Wi-Fi déconnecté !");
@@ -446,7 +433,7 @@ void updateSKU() {
     }
     char buf[20];
     strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &timeinfo);
-    skuFull = String(buf);
+    skuFull = "en"+ String(buf);
 }
 
 // Affichage d'un message sur l'écran OLED
@@ -569,52 +556,4 @@ void clearUltralightTag() {
         }
     }
     Serial.println("Tag cleared!");
-}
-
-String urlencode(const String& str) {
-  String ret;
-  char c;
-  for (size_t i = 0; i < str.length(); i++) {
-    c = str[i];
-    if (isalnum(c)) ret += c;
-    else if (c == ' ') ret += '+';
-    else {
-      ret += '%';
-      ret += String((uint8_t)c, HEX);
-    }
-  }
-  return ret;
-}
-
-String getLocation(const String& nameKey) {
-  HTTPClient http;
-  String url = String(serverUrl) + "?name=" + urlencode(nameKey);
-
-  http.begin(url);
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  int httpCode = http.GET();
-
-  Serial.printf("GET %s → HTTP %d\n", url.c_str(), httpCode);
-
-  if (httpCode == 200) {
-    String payload = http.getString();
-    Serial.println("RAW payload: " + payload);
-    http.end();
-
-    DynamicJsonDocument doc(256);
-    auto err = deserializeJson(doc, payload);
-    if (err) {
-      Serial.print("JSON parse failed: ");
-      Serial.println(err.c_str());
-      return "JSON error";
-    }
-    if (doc.containsKey("location")) {
-      return doc["location"].as<String>();
-    } else {
-      return "no ‘location’ key";
-    }
-  }
-
-  http.end();
-  return String("HTTP error ") + httpCode;
 }
