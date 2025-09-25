@@ -1,3 +1,4 @@
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -9,8 +10,6 @@
 #include <time.h>
 #include <ArduinoJson.h>   // Installer la bibliothèque ArduinoJson
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
-
-
 
 /********************************************************************
  * Configuration de l'écran OLED
@@ -32,23 +31,13 @@ const int DAYLIGHT_OFFSET_SEC = 0;      // Décalage pour l'heure d'été
  ********************************************************************/
 String skuFull; // Contient le SKU complet (date et heure formatée)
 
-
-// URL du serveur pour envoyer les données
-//const char* serverUrl = "https://script.google.com/macros/s/AKfycbyXPDymDrVKF9IzpyUfbctDl8EdX7xHcnvYmFywMmLFSXdc_2oBvTn38dEBQIFGxILT/exec";
-
 // Pins pour le lecteur RFID et les boutons
 #define RST_PIN  0
 #define SS_PIN   5
-//#define BUTTON_PIN 4 // Bouton pour basculer entre lecture/écriture
 #define BUTTON_PIN2 34 // Bouton pour confirmer l'action
-//#define LED_READ 2   // LED pour le mode lecture
-//#define LED_WRITE 15 // LED pour le mode écriture
 
 // Définition des pins
 #define POT_PIN 32       // Pin analogique pour le potentiomètre
-//#define LED_TRIE 2       // LED pour l'état "Trie"
-//#define LED_STOCKAGE 15  // LED pour l'état "Stockage"
-//#define LED_VENTE 4      // LED pour l'état "Vente"
 
 // Pages mémoire pour le RFID
 #define START_PAGE 4
@@ -74,19 +63,11 @@ int lastPotValue = -1; // Valeur précédente du potentiomètre
  ********************************************************************/
 void writeStringToUltralight(const char* text, int page);
 String readStringFromUltralight(byte startPage, byte length);
-//void sendToServer(String uid, String name);
 void updateSKU(); // Met à jour le SKU avec la date/heure actuelle
-//void initWiFi();  // Initialise la connexion Wi-Fi
-//void initTime();  // Synchronise l'heure via NTP
 void OLEDiplay(const String& msg, int16_t size); // Affiche un message sur l'écran OLED
 void updateState(int state);
-//void fetchAndDisplayLocation(const String& storedName); //
 void dumpTagInfo();
-//void onPortalStart(WiFiManager *wm); // Prototype for WiFiManager AP callback
-//void onSaveConfig(); // Prototype for WiFiManager save config callback
 void clearUltralightTag(); // Prototype for clearUltralightTag
-//String getLocation(const String& nameKey); // Prototype for getLocation
-
 
 /********************************************************************
  * Fonction setup()
@@ -97,23 +78,11 @@ void setup() {
     SPI.begin();          // Initialisation du bus SPI
     mfrc522.PCD_Init();   // Initialisation du lecteur RFID
     delay(4);				// Optional delay. Some board do need more time after init to be ready, see Readme
-	mfrc522.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
-	Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
+    mfrc522.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
+    Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
 
-    // Configuration des boutons et LEDs
-   // pinMode(BUTTON_PIN, INPUT_PULLUP); 
+    // Configuration des boutons
     pinMode(BUTTON_PIN2, INPUT_PULLUP); 
-    //pinMode(LED_READ, OUTPUT);         
-    //pinMode(LED_WRITE, OUTPUT);        
-
-    // État initial des LEDs
-   // digitalWrite(LED_READ, HIGH);  // Éteindre la LED de lecture
-    //digitalWrite(LED_WRITE, LOW); // Allumer la LED d'écriture
-
-    // Configuration du mode
-    /*pinMode(LED_TRIE, OUTPUT);
-    pinMode(LED_STOCKAGE, OUTPUT);
-    pinMode(LED_VENTE, OUTPUT);*/
 
     // Initialisation de l'écran OLED
     if (!display.begin(SSD1306_SWITCHCAPVCC)) {
@@ -136,10 +105,6 @@ void setup() {
         delay(1000);
         Serial.println(F("OLED alloue !"));
     }
-
-    // Initialisation Wi-Fi et synchronisation NTP
-  //  initWiFi();
-  //  initTime();
 }
 
 /********************************************************************
@@ -149,8 +114,9 @@ void setup() {
 
 void loop() {
     // Lire la valeur du potentiomètre
-    int potValue = analogRead(POT_PIN)/1023;
-    
+    int potRaw = analogRead(POT_PIN);
+    int potValue = potRaw / 1024; // 0-4095 mapped to 0-3 (for 4 states)
+
     // Afficher uniquement si la variation est significative (ici 20)
     if (abs(potValue - lastPotValue) > 0) {
         Serial.print("Valeur potentiometre : ");
@@ -158,34 +124,15 @@ void loop() {
         lastPotValue = potValue;
     }
 
-  /*  // Déterminer l'état en fonction de la valeur du potentiomètre
-    if (potValue==0) { 
-        currentState = 0; // Trie
-    } else if (potValue < 2730) {
-        currentState = 1; // Stockage
-    } else {
-        currentState = 2; // Vente
-    }*/
-
     // Mettre à jour les LEDs et l'affichage OLED
     updateState(lastPotValue);
-    //dumpTagInfo();
 
     // Gestion du bouton pour confirmer l'action
     if (digitalRead(BUTTON_PIN2) == HIGH) {
         delay(300); // Anti-rebond
 
         if(lastPotValue == 4) { 
-           // Serial.println(F("\nReseting Wifi..."));
-          //  display.clearDisplay();
-          //  display.setCursor(0, 0); 
-          //  Serial.println(F("Wifi deleted"));
-          //  OLEDiplay(F("Wifi deleted"), 1);
-          //  delay(5000);
-              //WiFiManager
-           // WiFiManager wm;
-           // wm.resetSettings();
-          //  initWiFi(); // Réinitialisation de la connexion Wi-Fi
+            // Reset Wifi (fonctionnalité désactivée)
         }
 
         // Attente d'une nouvelle carte RFID
@@ -212,11 +159,7 @@ void loop() {
             updateSKU(); // Met à jour le SKU
             skuFull.trim(); // Supprime les espaces inutiles
             Serial.println(skuFull.c_str());
-            //writeStringToUltralight("en20250517_163642",7);
             writeStringToUltralight(("en"+ skuFull).c_str(),7);
-             // Envoi des données au serveur
-           // sendToServer(cardUID, skuFull);
-            //fetchAndDisplayLocation(storedNameSKU);
             OLEDiplay(F("Donnees envoyees !"), 1);
             Serial.println(F("SKU registered!"));
             Serial.println(F("End of processus!"));
@@ -231,13 +174,6 @@ void loop() {
             Serial.println(F("\nReading tag..."));
             OLEDiplay("Lecture du nom...", 1);
             String storedName = readStringFromUltralight(7, 15);
-          //  String loc = getLocation(F);
-
-           // Serial.print("Location for ");
-           // Serial.print(storedName);
-           // Serial.print(": ");
-           // Serial.println(loc);
-           // delay(10000);        
             if (storedName.length() == 0 ) {
                 Serial.println(F("No SKU stored!"));
                 display.clearDisplay();
@@ -251,17 +187,7 @@ void loop() {
                 display.setCursor(0, 0); 
                 OLEDiplay(F("SKU:"), 1);
                 OLEDiplay(storedName, 1);
-               // delay(5000);
             } 
-           /* else if (loc.length() == 0) {
-                Serial.println(F("No location found!"));
-                display.clearDisplay();
-                OLEDiplay(F("Aucun emplacement trouve !"), 1);
-                return; 
-            }*/
-           // String storedNameSKU = storedName.substring(0, 15);    
-          //  Serial.println(storedNameSKU);
-            // Affichage OLED
         }
         else if(lastPotValue == 2) { 
             Serial.println(F("\nVente..."));
@@ -282,27 +208,6 @@ void loop() {
  ********************************************************************/
 
 // Écriture d'une chaîne de caractères dans la mémoire RFID
-/*void writeStringToUltralight(const char* text, int page) {
-    byte buffer[4];
-    int len = strlen(text);
-    int written = 0;
-
-    while (written < len && page <= END_PAGE) {
-        memset(buffer, 0, 4);
-        for (int j = 0; j < 4 && written < len; j++) {
-            buffer[j] = text[written++];
-        }
-        for (int row = 0; row < 2; row++) {
-                auto status = mfrc522.MIFARE_Ultralight_Write(page,dataBlock[row], 4);
-            if (status != MFRC522::STATUS_OK) {
-                Serial.print("Échec d'écriture à la page "); Serial.println(page);
-                return;
-            }
-            page++;
-        }
-    }
-    Serial.println("Écriture terminée.");
-}*/
 void writeStringToUltralight(const char* text, int page) {
     byte buffer[4];
     int len = strlen(text);
@@ -322,6 +227,7 @@ void writeStringToUltralight(const char* text, int page) {
     }
     Serial.println("Écriture terminée.");
 }
+
 // Lecture d'une chaîne de caractères depuis la mémoire RFID
 String readStringFromUltralight(byte startPage, byte length) {
     String result = "";
@@ -342,7 +248,6 @@ String readStringFromUltralight(byte startPage, byte length) {
         }
         for (uint8_t j = 0; j < 4 && result.length() < length; j++) {
             if (i==0 && j==0) j+=2; // Ignore les 2 premiers octets
-           // else if (i==pages-1 && j==2) break; // Ignore les 2 derniers octets
             byte b = rawBuf[j];
             Serial.println(b, HEX);
             Serial.println(j);
@@ -353,119 +258,14 @@ String readStringFromUltralight(byte startPage, byte length) {
     return result;
 }
 
-// Envoi des données au serveur
-/*void sendToServer(String uid, String name) {
-    if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
-        http.begin(serverUrl);
-        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-        String postData = "uid=" + uid + "&name=" + name ;
-        int httpResponseCode = http.POST(postData);
-
-        if (httpResponseCode > 0) {
-            Serial.println("Réponse du serveur: " + http.getString());
-        } else {
-            Serial.println("Erreur lors de l'envoi des données.");
-        }
-        http.end();
-    } else {
-        Serial.println("Wi-Fi déconnecté !");
-    }
-}
-
-// Initialisation de la connexion Wi-Fi
-/*void initWiFi2() {
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0); 
-    display.setTextSize(1);
-    display.printf("Wi-Fi: connexion a %s …\n", ssid);
-    display.display();
-    delay(1000);
-
-   // WiFi.begin(ssid, password);
-    uint16_t idx = 0;
-    display.clearDisplay();
-    while (WiFi.status() != WL_CONNECTED) {
-        display.setCursor(idx, 0); 
-        display.print('.');
-        display.display();
-        idx += 3;
-        delay(250);
-    }
-    display.clearDisplay();
-    display.println("Wi-Fi connecte !");
-    display.display();
-    delay(1000);
-}*/
-/*
-void initWiFi() {
-    display.setCursor(0, 0); 
-    display.setTextSize(1);
-    display.printf("Wi-Fi: connexion");
-    display.display();
-    delay(1000);
-
-    WiFiManager wm;
-
-    // Register callbacks
-    wm.setAPCallback(onPortalStart);      // Called when portal starts
-    wm.setSaveConfigCallback(onSaveConfig); // Called when WiFi is connected
-
-    wm.setConfigPortalTimeout(90);
-    if(!wm.autoConnect("StationTrie")) {
-        display.clearDisplay();
-        if (WiFi.status() != WL_CONNECTED) {
-            OLEDiplay("Connection failed!", 1);
-        }
-        delay(2000);
-        ESP.restart();
-    } 
-    Serial.println("connected...yeey :)");
-    display.clearDisplay();
-    display.println("Wi-Fi connected!");
-    display.display();
-    delay(2000);
-}*/
-
-// Synchronisation de l'heure via NTP
-/*void initTime() {
-    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
-    display.clearDisplay();
-    display.setCursor(0,0);
-    display.print("NTP: synchronisation");
-    display.display();
-    struct tm tm;
-    while (!getLocalTime(&tm)) {
-        for (int i = 0; i < 3; i++) {
-            display.print(".");
-            display.display();
-            delay(500);
-        }
-    }
-    display.clearDisplay();
-    display.println("Pret !");
-    display.display();
-    delay(1000);
-}*/
-
 // Mise à jour du SKU avec la date/heure actuelle
 void updateSKU() { 
-/*struct tm timeinfo;
-    if (!getLocalTime(&timeinfo)) {
-        display.print("Erreur time");
-        display.display();
-        return;
-    }
-    char buf[20];
-    strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &timeinfo);*/
-    skuFull = "20250922_090638"; // String(buf);
+    skuFull = "20250922_090638";
 }
 
 // Affichage d'un message sur l'écran OLED
 void OLEDiplay(const String& msg, int16_t size) {
     display.setTextColor(SSD1306_WHITE);
-    //display.setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw 'inverse' text
     display.setTextSize(size);
     display.println(msg);
     display.display();
@@ -479,7 +279,7 @@ void updateState(int state) {
     if(currentState == lastPotValue) {
         return; // Pas de changement d'état
     }
- else {
+    else {
         currentState = lastPotValue;
         switch (state) {
             case 0: // Trie
@@ -501,45 +301,6 @@ void updateState(int state) {
         OLEDiplay(message,2);
     }
 }
-// Fonction pour récupérer et afficher la localisation
-// (à utiliser dans la boucle principale ou une nouvelle fonction)
-/* 
-void fetchAndDisplayLocation(const String& storedName) {
-  if (WiFi.status() != WL_CONNECTED) {
-    OLEDiplay("WiFi not connected", 1);
-    return;
-  }
-
-  // 1) Construction de l'URL
-  String url = String(serverUrl) + "?name=" + storedName;
-  
-  // 2) Requête GET
-  HTTPClient http;
-  http.begin(url);
-  int statusCode = http.GET();
-
-  if (statusCode == HTTP_CODE_OK) {
-    String payload = http.getString();  // ex: {"location":"1A3B2-4"}
-    DynamicJsonDocument doc(200);
-    DeserializationError err = deserializeJson(doc, payload);
-
-    if (err) {
-      OLEDiplay("JSON parse error", 1);
-    } else if (doc.containsKey("location")) {
-      String loc = doc["location"].as<String>();
-      OLEDiplay("Loc: " + loc, 2);   // display location
-    } else if (doc.containsKey("error")) {
-      String errMsg = doc["error"].as<String>();
-      OLEDiplay("Error: " + errMsg, 1);
-    }
-  } else {
-    OLEDiplay("HTTP error: " + String(statusCode), 1);
-  }
-
-  http.end();
-}
-  */
-
 
 // Nouvelle fonction pour dumper les infos du tag
 void dumpTagInfo() {
@@ -555,20 +316,6 @@ void dumpTagInfo() {
     mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
     mfrc522.PICC_HaltA();
 }
-
-// Callback: called when the config portal starts
-/*void onPortalStart(WiFiManager *wm) {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    OLEDiplay("Portal started!", 1);
-}*/
-
-// Callback: called when WiFi is connected and configuration is saved
-/*void onSaveConfig() {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    OLEDiplay("WiFi connected!", 1);
-}*/
 
 void clearUltralightTag() {
     byte empty[4] = {0, 0, 0, 0};
@@ -590,52 +337,3 @@ void clearUltralightTag() {
     }
     Serial.println("Tag cleared!");
 }
-
-/*
-String urlencode(const String& str) {
-  String ret;
-  char c;
-  for (size_t i = 0; i < str.length(); i++) {
-    c = str[i];
-    if (isalnum(c)) ret += c;
-    else if (c == ' ') ret += '+';
-    else {
-      ret += '%';
-      ret += String((uint8_t)c, HEX);
-    }
-  }
-  return ret;
-}
-
-String getLocation(const String& nameKey) {
-  HTTPClient http;
-  String url = String(serverUrl) + "?name=" + urlencode(nameKey);
-
-  http.begin(url);
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  int httpCode = http.GET();
-
-  Serial.printf("GET %s → HTTP %d\n", url.c_str(), httpCode);
-
-  if (httpCode == 200) {
-    String payload = http.getString();
-    Serial.println("RAW payload: " + payload);
-    http.end();
-
-    DynamicJsonDocument doc(256);
-    auto err = deserializeJson(doc, payload);
-    if (err) {
-      Serial.print("JSON parse failed: ");
-      Serial.println(err.c_str());
-      return "JSON error";
-    }
-    if (doc.containsKey("location")) {
-      return doc["location"].as<String>();
-    } else {
-      return "no ‘location’ key";
-    }
-  }
-
-  http.end();
-  return String("HTTP error ") + httpCode;
-}*/
