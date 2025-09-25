@@ -34,7 +34,7 @@ String skuFull; // Contient le SKU complet (date et heure formatée)
 
 
 // URL du serveur pour envoyer les données
-const char* serverUrl = "https://script.google.com/macros/s/AKfycbyXPDymDrVKF9IzpyUfbctDl8EdX7xHcnvYmFywMmLFSXdc_2oBvTn38dEBQIFGxILT/exec";
+//const char* serverUrl = "https://script.google.com/macros/s/AKfycbyXPDymDrVKF9IzpyUfbctDl8EdX7xHcnvYmFywMmLFSXdc_2oBvTn38dEBQIFGxILT/exec";
 
 // Pins pour le lecteur RFID et les boutons
 #define RST_PIN  0
@@ -74,18 +74,18 @@ int lastPotValue = -1; // Valeur précédente du potentiomètre
  ********************************************************************/
 void writeStringToUltralight(const char* text, int page);
 String readStringFromUltralight(byte startPage, byte length);
-void sendToServer(String uid, String name);
+//void sendToServer(String uid, String name);
 void updateSKU(); // Met à jour le SKU avec la date/heure actuelle
-void initWiFi();  // Initialise la connexion Wi-Fi
-void initTime();  // Synchronise l'heure via NTP
+//void initWiFi();  // Initialise la connexion Wi-Fi
+//void initTime();  // Synchronise l'heure via NTP
 void OLEDiplay(const String& msg, int16_t size); // Affiche un message sur l'écran OLED
 void updateState(int state);
-void fetchAndDisplayLocation(const String& storedName); //
+//void fetchAndDisplayLocation(const String& storedName); //
 void dumpTagInfo();
-void onPortalStart(WiFiManager *wm); // Prototype for WiFiManager AP callback
-void onSaveConfig(); // Prototype for WiFiManager save config callback
+//void onPortalStart(WiFiManager *wm); // Prototype for WiFiManager AP callback
+//void onSaveConfig(); // Prototype for WiFiManager save config callback
 void clearUltralightTag(); // Prototype for clearUltralightTag
-String getLocation(const String& nameKey); // Prototype for getLocation
+//String getLocation(const String& nameKey); // Prototype for getLocation
 
 
 /********************************************************************
@@ -123,12 +123,23 @@ void setup() {
         display.setTextSize(1);
         display.println(F("Echec de l'allocation OLED"));
         display.display();
+        Serial.println(F("Echec de l'allocation OLED"));
         for (;;); // Boucle infinie en cas d'erreur
+    }
+    else {
+        display.clearDisplay();
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 0); 
+        display.setTextSize(1);
+        display.println(F("OLED alloue !"));
+        display.display();
+        delay(1000);
+        Serial.println(F("OLED alloue !"));
     }
 
     // Initialisation Wi-Fi et synchronisation NTP
-    initWiFi();
-    initTime();
+  //  initWiFi();
+  //  initTime();
 }
 
 /********************************************************************
@@ -148,7 +159,7 @@ void loop() {
     }
 
   /*  // Déterminer l'état en fonction de la valeur du potentiomètre
-    if (potValue==0) {
+    if (potValue==0) { 
         currentState = 0; // Trie
     } else if (potValue < 2730) {
         currentState = 1; // Stockage
@@ -158,23 +169,23 @@ void loop() {
 
     // Mettre à jour les LEDs et l'affichage OLED
     updateState(lastPotValue);
-    dumpTagInfo();
+    //dumpTagInfo();
 
     // Gestion du bouton pour confirmer l'action
     if (digitalRead(BUTTON_PIN2) == HIGH) {
         delay(300); // Anti-rebond
 
         if(lastPotValue == 4) { 
-            Serial.println(F("\nReseting Wifi..."));
-            display.clearDisplay();
-            display.setCursor(0, 0); 
-            Serial.println(F("Wifi deleted"));
-            OLEDiplay(F("Wifi deleted"), 1);
-            delay(5000);
+           // Serial.println(F("\nReseting Wifi..."));
+          //  display.clearDisplay();
+          //  display.setCursor(0, 0); 
+          //  Serial.println(F("Wifi deleted"));
+          //  OLEDiplay(F("Wifi deleted"), 1);
+          //  delay(5000);
               //WiFiManager
-            WiFiManager wm;
-            wm.resetSettings();
-            initWiFi(); // Réinitialisation de la connexion Wi-Fi
+           // WiFiManager wm;
+           // wm.resetSettings();
+          //  initWiFi(); // Réinitialisation de la connexion Wi-Fi
         }
 
         // Attente d'une nouvelle carte RFID
@@ -204,7 +215,7 @@ void loop() {
             //writeStringToUltralight("en20250517_163642",7);
             writeStringToUltralight(("en"+ skuFull).c_str(),7);
              // Envoi des données au serveur
-            sendToServer(cardUID, skuFull);
+           // sendToServer(cardUID, skuFull);
             //fetchAndDisplayLocation(storedNameSKU);
             OLEDiplay(F("Donnees envoyees !"), 1);
             Serial.println(F("SKU registered!"));
@@ -220,35 +231,37 @@ void loop() {
             Serial.println(F("\nReading tag..."));
             OLEDiplay("Lecture du nom...", 1);
             String storedName = readStringFromUltralight(7, 15);
-            String loc = getLocation(storedName);
-            Serial.print(F("SKU read:"));
-            Serial.println(storedName);
-            Serial.print("Location for ");
-            Serial.print(storedName);
-            Serial.print(": ");
-            Serial.println(loc);
-            delay(10000);        
+          //  String loc = getLocation(F);
+
+           // Serial.print("Location for ");
+           // Serial.print(storedName);
+           // Serial.print(": ");
+           // Serial.println(loc);
+           // delay(10000);        
             if (storedName.length() == 0 ) {
                 Serial.println(F("No SKU stored!"));
                 display.clearDisplay();
-                OLEDiplay(F("Aucun nom stocke !"), 1);
-                return; 
+                OLEDiplay(F("Aucun nom stocker !"), 1);
             }
-            else if (loc.length() == 0) {
+            else {
+                Serial.print(F("SKU read:"));
+                Serial.println(storedName);
+
+                display.clearDisplay();
+                display.setCursor(0, 0); 
+                OLEDiplay(F("SKU:"), 1);
+                OLEDiplay(storedName, 1);
+               // delay(5000);
+            } 
+           /* else if (loc.length() == 0) {
                 Serial.println(F("No location found!"));
                 display.clearDisplay();
                 OLEDiplay(F("Aucun emplacement trouve !"), 1);
                 return; 
-            }
+            }*/
            // String storedNameSKU = storedName.substring(0, 15);    
           //  Serial.println(storedNameSKU);
             // Affichage OLED
-            display.clearDisplay();
-            display.setCursor(0, 0); 
-            OLEDiplay(F("SKU:"), 1);
-            OLEDiplay(storedName, 1);
-           // Serial.println(storedName);
-            delay(2000);
         }
         else if(lastPotValue == 2) { 
             Serial.println(F("\nVente..."));
@@ -341,7 +354,7 @@ String readStringFromUltralight(byte startPage, byte length) {
 }
 
 // Envoi des données au serveur
-void sendToServer(String uid, String name) {
+/*void sendToServer(String uid, String name) {
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
         http.begin(serverUrl);
@@ -385,7 +398,7 @@ void sendToServer(String uid, String name) {
     display.display();
     delay(1000);
 }*/
-
+/*
 void initWiFi() {
     display.setCursor(0, 0); 
     display.setTextSize(1);
@@ -413,10 +426,10 @@ void initWiFi() {
     display.println("Wi-Fi connected!");
     display.display();
     delay(2000);
-}
+}*/
 
 // Synchronisation de l'heure via NTP
-void initTime() {
+/*void initTime() {
     configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
     display.clearDisplay();
     display.setCursor(0,0);
@@ -434,19 +447,19 @@ void initTime() {
     display.println("Pret !");
     display.display();
     delay(1000);
-}
+}*/
 
 // Mise à jour du SKU avec la date/heure actuelle
 void updateSKU() { 
-    struct tm timeinfo;
+/*struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
         display.print("Erreur time");
         display.display();
         return;
     }
     char buf[20];
-    strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &timeinfo);
-    skuFull = String(buf);
+    strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &timeinfo);*/
+    skuFull = "20250922_090638"; // String(buf);
 }
 
 // Affichage d'un message sur l'écran OLED
@@ -463,28 +476,34 @@ void updateState(int state) {
     String message;
     display.clearDisplay();
     display.setCursor(0, 12);
-
-    switch (state) {
-        case 0: // Trie
-            message="Sorting";
-            break;
-        case 1: // Stockage
-            message="Storage";
-            break;
-        case 2: // Vente
-            message="Sale";
-            break;
-        case 3: // Lecture
-            message="Erase";
-            break;
-        case 4: // Autre état
-            message="Reset Wifi";
-            break;
+    if(currentState == lastPotValue) {
+        return; // Pas de changement d'état
     }
-    OLEDiplay(message,2);
+ else {
+        currentState = lastPotValue;
+        switch (state) {
+            case 0: // Trie
+                message="Sorting";
+                break;
+            case 1: // Stockage
+                message="Storage";
+                break;
+            case 2: // Vente
+                message="Sale";
+                break;
+            case 3: // Lecture
+                message="Erase";
+                break;
+            case 4: // Autre état
+                message="Reset Wifi";
+                break;
+        }
+        OLEDiplay(message,2);
+    }
 }
 // Fonction pour récupérer et afficher la localisation
 // (à utiliser dans la boucle principale ou une nouvelle fonction)
+/* 
 void fetchAndDisplayLocation(const String& storedName) {
   if (WiFi.status() != WL_CONNECTED) {
     OLEDiplay("WiFi not connected", 1);
@@ -519,6 +538,7 @@ void fetchAndDisplayLocation(const String& storedName) {
 
   http.end();
 }
+  */
 
 
 // Nouvelle fonction pour dumper les infos du tag
@@ -537,18 +557,18 @@ void dumpTagInfo() {
 }
 
 // Callback: called when the config portal starts
-void onPortalStart(WiFiManager *wm) {
+/*void onPortalStart(WiFiManager *wm) {
     display.clearDisplay();
     display.setCursor(0, 0);
     OLEDiplay("Portal started!", 1);
-}
+}*/
 
 // Callback: called when WiFi is connected and configuration is saved
-void onSaveConfig() {
+/*void onSaveConfig() {
     display.clearDisplay();
     display.setCursor(0, 0);
     OLEDiplay("WiFi connected!", 1);
-}
+}*/
 
 void clearUltralightTag() {
     byte empty[4] = {0, 0, 0, 0};
@@ -571,6 +591,7 @@ void clearUltralightTag() {
     Serial.println("Tag cleared!");
 }
 
+/*
 String urlencode(const String& str) {
   String ret;
   char c;
@@ -617,4 +638,4 @@ String getLocation(const String& nameKey) {
 
   http.end();
   return String("HTTP error ") + httpCode;
-}
+}*/
