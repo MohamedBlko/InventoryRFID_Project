@@ -285,6 +285,7 @@ void dumpTagInfo() {
 }
 
 
+
 /*void clearUltralightTag() {
     byte empty[4] = {0, 0, 0, 0};
     uint16_t idx=0;
