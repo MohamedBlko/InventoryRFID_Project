@@ -233,12 +233,31 @@ void updateSKU() {
 }
 
 // Affichage d'un message sur l'écran OLED
-void OLEDiplay(const String& msg, int16_t size) {
+/*void OLEDiplay(const String& msg, int16_t size) {
     display.setTextColor(SSD1306_WHITE);
     display.setTextSize(size);
     display.println(msg);
     display.display();
+}*/
+void OLEDiplay(const String& msg, int16_t size) {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(size);
+
+    int16_t width = display.width();
+    int16_t height = display.height();
+
+    int16_t textWidth  = msg.length() * 6 * size;
+    int16_t textHeight = 8 * size;
+
+    int16_t x = (width - textWidth) / 2;
+    int16_t y = (height - textHeight) / 2;
+
+    display.setCursor(x, y);
+    display.println(msg);
+    display.display();
 }
+
 
 // Mettre à jour les LEDs et l'écran OLED en fonction de l'état
 void updateState(int state) {
