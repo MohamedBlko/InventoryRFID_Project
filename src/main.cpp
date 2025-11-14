@@ -16,6 +16,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /********************************************************************
  * RFID CONFIGURATION
  ********************************************************************/
+// Pages mémoire pour le RFID
+#define START_PAGE 4
+#define END_PAGE 15 // Pages classiques pour Ultralight
+
 #define RST_PIN  15
 #define SS_PIN   5
 MFRC522 mfrc522(SS_PIN, RST_PIN);
@@ -25,8 +29,8 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
  ********************************************************************/
 #define LED_POWER 2   // Always ON when ESP32 is running
 #define LED_CONN  27  // Solid ON = PC connected, slow blink = disconnected
-#define LED_OP    12
-#define BUZZER    14
+#define LED_OP    12  // couplé au buzzer
+#define BUZZER    14  // coupllé au LED_OP
 #define BUTTON_PIN 34 // Must press to restart reading
 
 /********************************************************************
@@ -34,6 +38,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
  ********************************************************************/
 unsigned long lastPingTime = 0;
 bool serialConnected = false;
+String skuFull; // Contient le SKU complet (date et heure formatée)
 
 /********************************************************************
  * FUNCTIONS
@@ -46,7 +51,7 @@ String readStringFromUltralight(byte startPage, byte length);
  * SETUP
  ********************************************************************/
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(921600);
 
     pinMode(LED_POWER, OUTPUT);
     pinMode(LED_CONN, OUTPUT);
@@ -56,17 +61,20 @@ void setup() {
 
     // LED_POWER always ON
     digitalWrite(LED_POWER, HIGH);
+    digitalWrite(BUZZER, HIGH);
 
-    SPI.begin();
-    mfrc522.PCD_Init();
-    delay(100);
-
+    SPI.begin();          // Initialisation du bus SPI
+    mfrc522.PCD_Init();   // Initialisation du lecteur RFID
+    delay(100);				// Optional delay. Some board do need more time after init to be ready, see Readme
+    mfrc522.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
+    
     if (!display.begin(SSD1306_SWITCHCAPVCC)) {
+        OLEDiplay("Echec OLED!", 1);
         for (;;) {}
+    }else {
+        OLEDiplay("OLED alloue !",1);
+        delay(800);
     }
-
-    OLEDiplay("Boot...", 1);
-    delay(800);
 }
 
 /********************************************************************
@@ -77,7 +85,7 @@ void loop() {
     /*************************************************************
      * 1. SERIAL CONNECTION CHECK (PING heartbeat)
      *************************************************************/
-    if (Serial.available()) {
+   /* if (Serial.available()) {
         String msg = Serial.readStringUntil('\n');
         msg.trim();
         msg.replace("\r", "");
@@ -87,21 +95,21 @@ void loop() {
             serialConnected = true;
             lastPingTime = millis();
         }
-    }
+    }*/
 
     // If no PING for 3 seconds, connection lost
-    if (millis() - lastPingTime > 3000) {
+   /* if (millis() - lastPingTime > 3000) {
         serialConnected = false;
-    }
+    }*/
 
     /*************************************************************
      * LED_CONN BEHAVIOR
      *************************************************************/
-    if (serialConnected) {
+    /*if (serialConnected) {
         digitalWrite(LED_CONN, HIGH);   // Solid ON
     } else {
         digitalWrite(LED_CONN, (millis() % 1000) < 500 ? HIGH : LOW); // Slow blink
-    }
+    }*/
 
     /*************************************************************
      * 2. RFID SCANNING
@@ -114,7 +122,9 @@ void loop() {
 
     // Beep once when tag is detected
     digitalWrite(BUZZER, HIGH);
+    digitalWrite(LED_OP, HIGH);
     delay(200);
+    digitalWrite(LED_OP, LOW);
     digitalWrite(BUZZER, LOW);
 
     String storedName = readStringFromUltralight(7, 35);
@@ -124,8 +134,7 @@ void loop() {
         OLEDiplay("Aucun SKU !", 1);
     } else {
          Serial.println("No SKU !");
-        OLEDiplay("SKU:", 1);
-        OLEDiplay(storedName, 1);
+        OLEDiplay("SKU: " + storedName, 1);
     }
 
     /*************************************************************
@@ -134,12 +143,9 @@ void loop() {
 
     // Wait for press
     while (digitalRead(BUTTON_PIN) == LOW) {
-        // Maintain LED_CONN blinking while waiting
-        if (!serialConnected) {
-            digitalWrite(LED_CONN, (millis() % 1000) < 500 ? HIGH : LOW);
-        }
+       // stay in this until BUTTON_PIN2 goes HIGH
+        while (digitalRead (BUTTON_PIN) == LOW) {}
     }
-
     // Debounce + wait for release
     while (digitalRead(BUTTON_PIN) == LOW) {}
     delay(200);
@@ -166,13 +172,17 @@ void OLEDiplay(const String& msg, int size) {
     display.display();
 }
 
+
 String extractTagSku(const String& json) {
     int idIndex = json.indexOf("\"id\":\"");
     if (idIndex == -1) return "";
-    int start = idIndex + 6;
+    int start = idIndex + 6; // length of '"id":"'
     int end = json.indexOf("\"", start);
     if (end == -1) return "";
-    return json.substring(start, end);
+    String sku = json.substring(start, end);
+    // Remove any trailing null bytes or whitespace
+    sku.trim();
+    return sku;
 }
 
 String readStringFromUltralight(byte startPage, byte length) {
