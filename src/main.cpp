@@ -135,7 +135,7 @@ void loop() {
         OLEDiplay("Aucun SKU !", 1);
     } else {
          Serial.println(storedName);
-        OLEDiplay("SKU: " + storedName, 1);
+        OLEDiplay("SKU:"+ storedName, 1);
     }
 
     /*************************************************************
@@ -162,8 +162,8 @@ void OLEDiplay(const String& msg, int size) {
 
     int16_t w = display.width();
     int16_t h = display.height();
-    int16_t tw = msg.length() * 6 * size;
-    int16_t th = 8 * size;
+    int16_t tw = msg.length() * 5 * size;
+    int16_t th =  size/2;
 
     int16_t x = (w - tw) / 2;
     int16_t y = (h - th) / 2;
