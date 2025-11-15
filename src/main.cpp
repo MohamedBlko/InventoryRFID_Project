@@ -81,7 +81,7 @@ void setup() {
  * LOOP
  ********************************************************************/
 void loop() {
-
+    
     /*************************************************************
      * 1. SERIAL CONNECTION CHECK (PING heartbeat)
      *************************************************************/
@@ -114,6 +114,7 @@ void loop() {
     /*************************************************************
      * 2. RFID SCANNING
      *************************************************************/
+    digitalWrite(BUZZER, LOW);
     OLEDiplay("Lecture Actif !", 1);
     if (!mfrc522.PICC_IsNewCardPresent() ||
         !mfrc522.PICC_ReadCardSerial()) {
@@ -133,7 +134,7 @@ void loop() {
     if (storedName.length() == 0) {
         OLEDiplay("Aucun SKU !", 1);
     } else {
-         Serial.println("No SKU !");
+         Serial.println(storedName);
         OLEDiplay("SKU: " + storedName, 1);
     }
 
