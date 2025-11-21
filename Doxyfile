@@ -1,0 +1,91 @@
+# ============================================================
+# Project Info
+# ============================================================
+
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "Ecommerce Studio Photo"
+PROJECT_NUMBER         = "v1.0"
+PROJECT_BRIEF          = "Application PhotoBooth, firmware ESP32, serveur C++."
+OUTPUT_DIRECTORY       = docs
+
+# ============================================================
+# Input
+# ============================================================
+
+INPUT                  = ./src ./include ./esp32 ./PhotoBoothApp
+RECURSIVE              = YES
+
+FILE_PATTERNS          = *.h \
+                         *.hpp \
+                         *.cpp \
+                         *.ino
+
+EXCLUDE                = ./build \
+                         ./.pio
+
+# ============================================================
+# HTML output
+# ============================================================
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+
+# ============================================================
+# LaTeX output disabled
+# ============================================================
+
+GENERATE_LATEX         = NO
+
+# ============================================================
+# Warnings — STRICT MODE
+# ============================================================
+
+QUIET                  = NO
+WARNINGS               = YES
+
+# ⚠️ Warnings si documentation manquante
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_IF_UNDOC_ENUM_VAL = YES
+
+# Fichier où les warnings seront copiés
+WARN_LOGFILE           = docs/doxygen_warnings.log
+
+# ============================================================
+# Extraction settings
+# ============================================================
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+EXTRACT_ANON_NSPACES   = YES
+
+# ============================================================
+# Source browser
+# ============================================================
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+
+# ============================================================
+# Markdown support
+# ============================================================
+
+MARKDOWN_SUPPORT       = YES
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# ============================================================
+# Diagrams (Graphviz disabled unless installed)
+# ============================================================
+
+HAVE_DOT               = NO
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO

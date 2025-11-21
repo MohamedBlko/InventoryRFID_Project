@@ -1,0 +1,4 @@
+warning: source './include' is not a readable file or directory... skipping.
+warning: source './esp32' is not a readable file or directory... skipping.
+warning: source './PhotoBoothApp' is not a readable file or directory... skipping.
+warning: Specified markdown mainpage 'README.md' has not been defined as input file

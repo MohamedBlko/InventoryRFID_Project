@@ -81,38 +81,9 @@ void setup() {
  * LOOP
  ********************************************************************/
 void loop() {
-    
-    /*************************************************************
-     * 1. SERIAL CONNECTION CHECK (PING heartbeat)
-     *************************************************************/
-   /* if (Serial.available()) {
-        String msg = Serial.readStringUntil('\n');
-        msg.trim();
-        msg.replace("\r", "");
-        msg.replace("\n", "");
-
-        if (msg.equalsIgnoreCase("PING")) {
-            serialConnected = true;
-            lastPingTime = millis();
-        }
-    }*/
-
-    // If no PING for 3 seconds, connection lost
-   /* if (millis() - lastPingTime > 3000) {
-        serialConnected = false;
-    }*/
 
     /*************************************************************
-     * LED_CONN BEHAVIOR
-     *************************************************************/
-    /*if (serialConnected) {
-        digitalWrite(LED_CONN, HIGH);   // Solid ON
-    } else {
-        digitalWrite(LED_CONN, (millis() % 1000) < 500 ? HIGH : LOW); // Slow blink
-    }*/
-
-    /*************************************************************
-     * 2. RFID SCANNING
+     * 1. RFID SCANNING
      *************************************************************/
     digitalWrite(BUZZER, LOW);
     OLEDiplay("Lecture Actif !", 1);
@@ -153,7 +124,7 @@ void loop() {
 }
 
 /********************************************************************
- * SUPPORT FUNCTIONS
+ * FUNCTIONS 
  ********************************************************************/
 void OLEDiplay(const String& msg, int size) {
     display.clearDisplay();
@@ -172,7 +143,6 @@ void OLEDiplay(const String& msg, int size) {
     display.println(msg);
     display.display();
 }
-
 
 String extractTagSku(const String& json) {
     int idIndex = json.indexOf("\"id\":\"");

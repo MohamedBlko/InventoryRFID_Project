@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "PIO Build",
+            "type": "shell",
+            "command": "pio run",
+            "group": "build",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "PIO Upload",
+            "type": "shell",
+            "command": "pio run -t upload"
+        },
+        {
+            "label": "PIO Monitor",
+            "type": "shell",
+            "command": "pio device monitor"
+        },
+        {
+            "label": "Build + Upload + Monitor",
+            "type": "shell",
+            "command": "doxygen && pio run && pio run -t upload && pio device monitor",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
