@@ -1,10 +1,4 @@
-Parfait.
-Je vais maintenant te générer **LE README FINAL COMPLET**, déjà fusionné, structuré, cohérent, industriel, et prêt à coller directement dans ton repo GitHub.
-
-Voici **le README final** ↓
-(*tu n’as qu’à copier/coller dans ton fichier `README.md`*)
-
----
+[![Doxygen](https://img.shields.io/badge/docs-Doxygen-blue)](docs/html/index.html)
 
 # 📘 **README.md — Documentation interne complète**
 
