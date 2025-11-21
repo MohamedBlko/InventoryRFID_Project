@@ -1,10 +1,7 @@
 [![Doxygen](https://img.shields.io/badge/docs-Doxygen-blue)](docs/html/index.html)
 
-# 📘 **README.md — Documentation interne complète**
-
 *Projet : ESP32 RFID + OLED + UserIO (Système Ecommerce Studio Photo)*
 *Version : 1.0 — Documentation interne*
-
 ---
 
 # 1. **Vue d’ensemble**
