@@ -1,4 +1,4 @@
-[![Doxygen](https://img.shields.io/badge/docs-Doxygen-blue)](docs/html/index.html)
+[![Doxygen](https://img.shields.io/badge/docs-Doxygen-blue)](index.html)
 
 *Projet : ESP32 RFID + OLED + UserIO (Système Ecommerce Studio Photo)*
 *Version : 1.0 — Documentation interne*
